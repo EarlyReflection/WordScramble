@@ -15,11 +15,18 @@ struct ContentView: View {
     @State private var errorTitle = ""
     @State private var errorMessage = ""
     @State private var showingError = false
+    @State private var score = 0
     
     var body: some View {
         NavigationView {
             List {
                 Section {
+                    HStack {
+                        Text("score: \(score)")
+                        Spacer()
+                        Text("\(usedWords.count) words")
+                    }
+                    
                     TextField("Enter your word", text: $newWord)
                         .textInputAutocapitalization(.never)
                 }
@@ -34,6 +41,13 @@ struct ContentView: View {
                 }
             }
             .navigationTitle(rootWord)
+            .toolbar {
+                Button("New Game") {
+                    startGame()
+                    usedWords = []
+                    score = 0
+                }
+            }
             .onSubmit(addNewWord)
             .onAppear(perform: startGame)
             .alert(errorTitle, isPresented: $showingError) {
@@ -42,6 +56,7 @@ struct ContentView: View {
                 Text(errorMessage)
             }
         }
+        
     }
     
     func addNewWord() {
@@ -49,22 +64,27 @@ struct ContentView: View {
         let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         // exit if the remaining string is empty
-        guard answer.count > 0 else { return }
+        guard answer.count > 2 else { return }
         
         guard isOriginal(word: answer) else {
             wordError(title: "Word used already", message: "Be more original")
+            score -= 1
             return
         }
 
         guard isPossible(word: answer) else {
             wordError(title: "Word not possible", message: "You can't spell that word from '\(rootWord)'!")
+            score -= 1
             return
         }
 
         guard isReal(word: answer) else {
             wordError(title: "Word not recognized", message: "You can't just make them up, you know!")
+            score -= 1
             return
         }
+        
+        score += answer.count - 2
         
         withAnimation {
             usedWords.insert(answer, at: 0)
@@ -93,7 +113,7 @@ struct ContentView: View {
     }
     
     func isOriginal(word: String) -> Bool {
-        !usedWords.contains(word)
+        !usedWords.contains(word) && word != rootWord
     }
     
     func isPossible(word: String) -> Bool {
