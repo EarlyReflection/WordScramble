@@ -21,12 +21,6 @@ struct ContentView: View {
         NavigationView {
             List {
                 Section {
-                    HStack {
-                        Text("score: \(score)")
-                        Spacer()
-                        Text("\(usedWords.count) words")
-                    }
-                    
                     TextField("Enter your word", text: $newWord)
                         .textInputAutocapitalization(.never)
                 }
@@ -38,20 +32,26 @@ struct ContentView: View {
                             Text(word)
                         }
                     }
+                } header: {
+                    HStack {
+                        Text("score: \(score)")
+                        Spacer()
+                        Text("\(usedWords.count) words")
+                    }
                 }
             }
             .navigationTitle(rootWord)
             .toolbar {
                 Button("New Game") {
                     startGame()
-                    usedWords = []
-                    score = 0
                 }
             }
             .onSubmit(addNewWord)
             .onAppear(perform: startGame)
             .alert(errorTitle, isPresented: $showingError) {
-                Button("OK", role: .cancel) { }
+                Button("OK", role: .cancel) {
+                    newWord = ""
+                }
             } message: {
                 Text(errorMessage)
             }
@@ -64,35 +64,43 @@ struct ContentView: View {
         let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         // exit if the remaining string is empty
-        guard answer.count > 2 else { return }
+        guard answer.count > 2 else {
+            wordError(title: "Too short", message: "Word must have more than 2 letters")
+            return
+        }
+        
+        guard answer != rootWord else {
+            wordError(title: "Nice try", message: "You can't use the starting word!")
+            return
+        }
         
         guard isOriginal(word: answer) else {
             wordError(title: "Word used already", message: "Be more original")
-            score -= 1
-            return
-        }
-
-        guard isPossible(word: answer) else {
-            wordError(title: "Word not possible", message: "You can't spell that word from '\(rootWord)'!")
-            score -= 1
-            return
-        }
-
-        guard isReal(word: answer) else {
-            wordError(title: "Word not recognized", message: "You can't just make them up, you know!")
-            score -= 1
             return
         }
         
-        score += answer.count - 2
+        guard isPossible(word: answer) else {
+            wordError(title: "Word not possible", message: "You can't spell that word from '\(rootWord)'!")
+            return
+        }
+        
+        guard isReal(word: answer) else {
+            wordError(title: "Word not recognized", message: "You can't just make them up, you know!")
+            return
+        }
         
         withAnimation {
             usedWords.insert(answer, at: 0)
         }
         newWord = ""
+        score += answer.count - 2
     }
     
     func startGame() {
+        newWord = ""
+        usedWords.removeAll()
+        score = 0
+        
         // 1. Find the URL for start.txt in our app bundle
         if let startWordsURL = Bundle.main.url(forResource: "start", withExtension: "txt") {
             // 2. Load start.txt into a string
@@ -113,12 +121,12 @@ struct ContentView: View {
     }
     
     func isOriginal(word: String) -> Bool {
-        !usedWords.contains(word) && word != rootWord
+        !usedWords.contains(word)
     }
     
     func isPossible(word: String) -> Bool {
         var tempWord = rootWord
-
+        
         for letter in word {
             if let pos = tempWord.firstIndex(of: letter) {
                 tempWord.remove(at: pos)
