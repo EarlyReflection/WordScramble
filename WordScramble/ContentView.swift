@@ -32,20 +32,9 @@ struct ContentView: View {
                             Text(word)
                         }
                     }
-                } header: {
-                    HStack {
-                        Text("score: \(score)")
-                        Spacer()
-                        Text("\(usedWords.count) words")
-                    }
                 }
             }
             .navigationTitle(rootWord)
-            .toolbar {
-                Button("New Game") {
-                    startGame()
-                }
-            }
             .onSubmit(addNewWord)
             .onAppear(perform: startGame)
             .alert(errorTitle, isPresented: $showingError) {
@@ -55,8 +44,21 @@ struct ContentView: View {
             } message: {
                 Text(errorMessage)
             }
+            .toolbar {
+                Button("New Game", action: startGame)
+            }
+            .safeAreaInset(edge: .bottom) {
+                HStack {
+                    Text("score: \(score)")
+                    Spacer()
+                    Text("\(usedWords.count) words")
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(.green)
+                .font(.title)
+            }
         }
-        
     }
     
     func addNewWord() {
